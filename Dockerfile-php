@@ -1,3 +1,24 @@
-FROM php:7.1
+FROM php:7.2-fpm
 
-COPY . /app/
+#RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
+RUN apt-get update && apt-get -y install curl acl \
+  && apt-get -y install $PHPIZE_DEPS \
+  && apt-get -y install libmcrypt-dev libpng-dev libxml2-dev msmtp bash \
+     libfreetype6-dev libjpeg62-turbo-dev libcurl4-openssl-dev libpkgconfig-perl \
+  && docker-php-source extract \
+  && docker-php-ext-install zip \
+  && docker-php-ext-install opcache \
+  && docker-php-source delete \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sS https://getcomposer.org/installer | php \
+  && chmod +x composer.phar && mv composer.phar /usr/local/bin/composer
+
+RUN mkdir /app
+COPY ./ /app/
+
+ENV APP_ENV dev
+
+WORKDIR /app
+RUN composer require symfony/dotenv
+RUN composer install # --no-dev --optimize-autoloader
